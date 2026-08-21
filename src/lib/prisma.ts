@@ -1,14 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
-  const client = new PrismaClient();
-  
-  // Test and log the database connection
-  client.$connect()
-    .then(() => console.log('✅ Successfully connected to PostgreSQL database via Prisma!'))
-    .catch((err: any) => console.error('❌ Failed to connect to the database:', err));
-    
-  return client;
+  return new PrismaClient();
 };
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
