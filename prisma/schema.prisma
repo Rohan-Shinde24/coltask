@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password     String?
+  googleId     String?  @unique
+  avatarUrl    String?
+  isVerified   Boolean  @default(false)
+  role         String   @default("user")
+  deletedAt    DateTime?
+  banExpiresAt DateTime?
+  banReason    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedWorkshops   Workshop[]       @relation("WorkshopOwner")
+  memberships      WorkshopMember[]
+  userStories      UserStory[]      @relation("UserStoryAssignedTo")
+  createdStories   UserStory[]      @relation("UserStoryCreatedBy")
+  tasks            Task[]           @relation("TaskAssignee")
+  createdTasks     Task[]           @relation("TaskCreatedBy")
+  sentMessages     Message[]        @relation("MessageSender")
+  receivedMessages Message[]        @relation("MessageRecipient")
+  readMessages     Message[]        @relation("MessageReadBy")
+  activityLogs     ActivityLog[]
+}
+
+model Workshop {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isPrivate   Boolean  @default(true)
+  joinCode    String?  @unique
+  ownerId     String
+  owner       User     @relation("WorkshopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tags         WorkshopTag[]
+  members      WorkshopMember[]
+  sprints      Sprint[]
+  userStories  UserStory[]
+  tasks        Task[]
+  messages     Message[]
+  activityLogs ActivityLog[]
+}
+
+model WorkshopTag {
+  id         String   @id @default(uuid())
+  name       String
+  color      String   @default("#47d2b2")
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+}
+
+model WorkshopMember {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  role       String   @default("member") // "admin" or "member"
+  joinedAt   DateTime @default(now())
+
+  @@unique([userId, workshopId])
+}
+
+model Sprint {
+  id         String   @id @default(uuid())
+  name       String
+  startDate  DateTime
+  endDate    DateTime
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  userStories UserStory[]
+}
+
+enum StoryStatus {
+  NEW
+  READY
+  IN_PROGRESS
+  READY_FOR_TEST
+  DONE
+}
+
+model UserStory {
+  id          String      @id @default(uuid())
+  title       String
+  description String?     @default("")
+  points      Int         @default(0)
+  status      StoryStatus @default(NEW)
+  tag         String?     @default("")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workshopId   String
+  workshop     Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  sprintId     String?
+  sprint       Sprint?  @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo   User?    @relation("UserStoryAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdById  String
+  createdBy    User     @relation("UserStoryCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+}
+
+enum TaskStatus {
+  NEW
+  IN_PROGRESS
+  READY_FOR_TEST
+  CLOSED
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(NEW)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workshopId  String
+  workshop    Workshop  @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  userStoryId String
+  userStory   UserStory @relation(fields: [userStoryId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  assignees User[] @relation("TaskAssignee")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  ciphertext String
+  iv         String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workshopId  String
+  workshop    Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String?
+  recipient   User?    @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  readBy User[] @relation("MessageReadBy")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  action     String
+  targetName String
+  details    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workshopId String
+  workshop   Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
