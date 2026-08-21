@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const adminEmail = 'rohan5112004@coltask.com';
