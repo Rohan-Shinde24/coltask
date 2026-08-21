@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const adminEmail = 'rohan5112004@coltask.com';
     const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
